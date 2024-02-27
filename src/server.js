@@ -1,4 +1,3 @@
-
 const axios = require("axios");
 
 const url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados?formato=json";
@@ -38,5 +37,5 @@ async function obterCotacaoDolarPTAXVenda() {
   }
 }
 
-obterCotacaoDolarPTAXVenda();
- 
+// Execute a função a cada 10 segundos
+setInterval(obterCotacaoDolarPTAXVenda, 10000); // 10 segundos em milissegundos
