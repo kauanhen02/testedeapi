@@ -67,7 +67,7 @@ async function obterCotacaoDolarPTAXVenda() {
   }
 }
 
-setInterval(obterCotacaoDolarPTAXVenda, 5000);
+setInterval(obterCotacaoDolarPTAXVenda, 600000);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
