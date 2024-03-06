@@ -1,24 +1,44 @@
 const express = require("express");
 const axios = require("axios");
-const mysql = require("mysql2/promise"); // Usaremos mysql2/promise para operações assíncronas
+const fs = require("fs");
+const path = require("path"); 
+
 
 const app = express();
-const PORT = process.env.PORT || 3077;
+const PORT = process.env.PORT || 3078;
 const url = "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados?formato=json";
+const jsonFilePath = path.join(__dirname, "cotacao_dolar.json");
 
-// Configuração do MySQL
-const connection = mysql.createPool({
-  host: "seu_host",
-  user: "seu_usuario",
-  password: "sua_senha",
-  database: "seu_banco_de_dados"
-});
+app.get("/cotacaodolar", (req, res) =>{
+  try {
+    const cotacaodolar = JSON.parse(fs.readFileSync(jsonFilePath));
+    res.json(cotacaodolar);
+  } catch (error) {
+    console.error("Erro ao ler o arquivo JSON:", error);
+    res.status(500).json({ error: "Erro ao ler o arquivo JSON" });
+  }
+})
+
+function inicializarArquivoJSON() {
+  try {
+    if (!fs.existsSync(jsonFilePath)) {
+      fs.writeFileSync(jsonFilePath, "[]");
+    }
+  } catch (error) {
+    console.error("Erro ao inicializar o arquivo JSON:", error);
+  }
+}
+
+
+inicializarArquivoJSON();
+
+
 
 async function obterCotacaoDolarPTAXVenda() {
   try {
     const response = await axios.get(url);
     const dados = response.data;
-    const dataAtual = new Date().toLocaleDateString();
+    const dataAtual = new Date().toLocaleDateString(); 
 
     let valorEncontrado = null;
 
@@ -37,9 +57,12 @@ async function obterCotacaoDolarPTAXVenda() {
     }
     
     if (valorEncontrado !== null) {
-      // Insere os dados no MySQL
-      await connection.query("INSERT INTO cotacao_dolar (data, valor) VALUES (?, ?)", [dataAtual, valorEncontrado]);
-      console.log("Dados inseridos com sucesso no MySQL.");
+      const resultado = { Valor: valorEncontrado };
+      const jsonResultado = JSON.stringify(resultado);
+
+      const dadosSalvos = JSON.parse(fs.readFileSync(jsonFilePath));
+      dadosSalvos.push(resultado);
+      fs.writeFileSync(jsonFilePath, JSON.stringify(dadosSalvos, null, 2));
     } else {
       console.log(JSON.stringify({ error: "Cotação não encontrada para a data atual." }));
     }
@@ -48,9 +71,10 @@ async function obterCotacaoDolarPTAXVenda() {
   }
 }
 
-// Definir o intervalo para obter e inserir dados periodicamente
+
 setInterval(obterCotacaoDolarPTAXVenda, 5000);
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
